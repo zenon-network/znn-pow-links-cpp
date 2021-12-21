@@ -1,0 +1,12 @@
+# Miscellaneous
+.idea
+.DS_Store
+.atom/
+build/
+
+# Cmake files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+compile_commands.json

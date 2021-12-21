@@ -1,0 +1,3 @@
+[submodule "SHA3IUF"]
+	path = SHA3IUF
+	url = https://github.com/brainhub/SHA3IUF.git
