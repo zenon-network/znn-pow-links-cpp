@@ -146,7 +146,7 @@ jobs:
               cd releases
               echo $(sha256sum *) >> SHA256CHECKSUMS.txt
           - name: Upload files to a GitHub release
-            uses: svenstaro/upload-release-action@2.3.0
+            uses: svenstaro/upload-release-action@2.5.0
             with:
               repo_token: ${{ secrets.GITHUB_TOKEN }}
               file: releases/*
