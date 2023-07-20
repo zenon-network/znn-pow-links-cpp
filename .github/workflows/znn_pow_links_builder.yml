@@ -25,6 +25,8 @@ jobs:
         run: |
           mkdir ios64
           mkdir simulator64
+          mkdir simulatorarm64
+          mkdir simulator
           mkdir darwin
           mkdir wasm
           mkdir releases
@@ -42,6 +44,13 @@ jobs:
           cp -R build/Release/pow_links.framework/ simulator64/pow_links.framework
       - name: Cleanup action
         run: rm -rf CMakeFiles/ CMakeCache.txt build/*
+      - name: Build ios-simulator-arm64 framework
+        run: |
+          cmake CMakeLists.txt -G Xcode -DCMAKE_TOOLCHAIN_FILE=ios-cmake/ios.toolchain.cmake -DPLATFORM=SIMULATORARM64
+          cmake --build . --config Release
+          cp -R build/Release/pow_links.framework/ simulatorarm64/pow_links.framework
+      - name: Cleanup action
+        run: rm -rf CMakeFiles/ CMakeCache.txt build/*
       - name: Build darwin dynamic library and framework
         run: |
           cmake CMakeLists.txt
@@ -51,10 +60,14 @@ jobs:
           cp build/generator darwin/generator
       - name: Cleanup action
         run: rm -rf CMakeFiles/ CMakeCache.txt build/*
+      - name: Create simulator
+        run: |
+          cp -r ./simulator64/pow_links.framework simulator/
+          lipo -create simulator64/pow_links.framework/pow_links simulatorarm64/pow_links.framework/pow_links -output simulator/pow_links.framework/pow_links
       - name: Build wasm
         run: emcc -O3 -s WASM=1 -s EXTRA_EXPORTED_RUNTIME_METHODS='["cwrap"]' -s EXPORT_ALL=1 -s LINKABLE=1 src/pow_links.cpp SHA3IUF/sha3.c src/bridge.cpp -o wasm/znn-pow-links.js
       - name: Create xcframework
-        run: xcodebuild -create-xcframework -framework darwin/pow_links.framework -framework ios64/pow_links.framework -framework simulator64/pow_links.framework -output pow_links.xcframework
+        run: xcodebuild -create-xcframework -framework darwin/pow_links.framework -framework ios64/pow_links.framework -framework simulator/pow_links.framework -output pow_links.xcframework
       - name: Archive files
         run: |
           zip -r pow_links.xcframework.zip pow_links.xcframework
@@ -82,6 +95,7 @@ jobs:
           mkdir linux-amd64
           mkdir linux-arm64
           mkdir android-arm64_v8a
+          mkdir android-x86_64
           mkdir windows-amd64
           mkdir releases
       - name: Build linux-amd64 shared library
@@ -109,6 +123,13 @@ jobs:
           cp build/libpow_links.so android-arm64_v8a/libpow_links.so
       - name: Cleanup action
         run: rm -rf CMakeFiles/ CMakeCache.txt build/*
+      - name: Build android-x86_64 shared library
+        run: |
+          cmake CMakeLists.txt -DCMAKE_SYSTEM_NAME=Android -DCMAKE_ANDROID_ARCH_ABI=x86_64 -DCMAKE_ANDROID_NDK=/home/runner/work/znn-pow-links-cpp/znn-pow-links-cpp/android-ndk-r25 -DCMAKE_ANDROID_STL_TYPE=c++_shared
+          cmake --build . --config Release
+          cp build/libpow_links.so android-x86_64/libpow_links.so
+      - name: Cleanup action
+        run: rm -rf CMakeFiles/ CMakeCache.txt build/*
       - name: Build windows-amd64 dynamic library
         run: |
           cmake CMakeLists.txt -DCMAKE_TOOLCHAIN_FILE=mingw-w64-x86_64.cmake
@@ -120,9 +141,10 @@ jobs:
           zip -jr libpow_links-linux-amd64.zip linux-amd64/*
           zip -jr libpow_links-linux-arm64.zip linux-arm64/*
           zip -jr libpow_links-android-arm64_v8a.zip android-arm64_v8a/*
+          zip -jr libpow_links-android-x86_64.zip android-x86_64/*
           zip -jr libpow_links-windows-amd64.zip windows-amd64/*
       - name: Copy archived files to releases
-        run: cp libpow_links-linux-amd64.zip  libpow_links-linux-arm64.zip libpow_links-android-arm64_v8a.zip libpow_links-windows-amd64.zip releases/
+        run: cp libpow_links-linux-amd64.zip  libpow_links-linux-arm64.zip libpow_links-android-arm64_v8a.zip libpow_links-android-x86_64.zip libpow_links-windows-amd64.zip releases/
       - uses: actions/upload-artifact@v3
         with:
           name: linux-artifacts
@@ -140,13 +162,14 @@ jobs:
           - name: Prepare releases directory
             run: |
               mkdir releases
-              cp pow_links.xcframework.zip libpow_links-darwin-universal.zip libpow_links-wasm.zip libpow_links-linux-amd64.zip libpow_links-linux-arm64.zip libpow_links-android-arm64_v8a.zip libpow_links-windows-amd64.zip releases/
+              cp pow_links.xcframework.zip libpow_links-darwin-universal.zip libpow_links-wasm.zip libpow_links-linux-amd64.zip libpow_links-linux-arm64.zip libpow_links-android-arm64_v8a.zip libpow_links-android-x86_64.zip libpow_links-windows-amd64.zip releases/
           - name: Generate checksums
             run: |
               cd releases
+              echo $(sha256sum *)
               echo $(sha256sum *) >> SHA256CHECKSUMS.txt
           - name: Upload files to a GitHub release
-            uses: svenstaro/upload-release-action@2.5.0
+            uses: svenstaro/upload-release-action@2.6.1
             with:
               repo_token: ${{ secrets.GITHUB_TOKEN }}
               file: releases/*

@@ -29,6 +29,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BIN_PATH})
 
 set(public_headers "${CMAKE_CURRENT_SOURCE_DIR}/src/bridge.hpp")
 
+set(CMAKE_XCODE_ATTRIBUTE_EXCLUDED_ARCHS[sdk=iphonesimulator*] "")
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
 
 add_library(pow_links SHARED src/bridge.hpp src/bridge.cpp src/bridge.def src/pow_links.cpp SHA3IUF/sha3.c)
